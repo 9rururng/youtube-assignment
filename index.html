@@ -3,13 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <title>J-ROCK 과제 제출 영상</title>
-  <style>
-    body { background:#111; color:#fff; font-family:sans-serif; padding:20px; }
-    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:20px; }
-    .card { background:#1c1c1c; border-radius:10px; overflow:hidden; }
-    img { width:100%; }
-    .info { padding:10px; }
-  </style>
+ <style>
+body {
+  background:#0f0f0f;
+  color:#fff;
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  margin:0;
+  padding:20px;
+}
+
+h2 {
+  margin-bottom:20px;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+  gap:16px;
+}
+
+.card {
+  background:#181818;
+  border-radius:12px;
+  overflow:hidden;
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform:translateY(-5px);
+  box-shadow:0 10px 20px rgba(0,0,0,0.5);
+}
+
+.card img {
+  width:100%;
+  display:block;
+}
+
+.info {
+  padding:10px;
+}
+
+.name {
+  font-size:14px;
+  font-weight:500;
+  margin-bottom:4px;
+}
+
+.date {
+  font-size:12px;
+  color:#aaa;
+}
+
+/* 📱 모바일 최적화 */
+@media (max-width: 600px) {
+  body {
+    padding:10px;
+  }
+
+  .grid {
+    grid-template-columns:1fr;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -22,7 +77,7 @@ const sheetURL = "https://docs.google.com/spreadsheets/d/1kTpj8r_CAJTbxjRgtbF2YZ
 fetch(sheetURL)
   .then(res => res.text())
   .then(data => {
-    const rows = data.split("\n").slice(1);
+    const rows = data.split("\n").slice(4);
 
     rows.reverse().forEach(row => {
       // 쉼표 2개까지만 나누기 (3열 구조)
@@ -49,16 +104,16 @@ fetch(sheetURL)
       const thumb = `https://img.youtube.com/vi/${videoId}/0.jpg`;
 
       const card = `
-        <div class="card">
-          <a href="${url}" target="_blank">
-            <img src="${thumb}">
-          </a>
-          <div class="info">
-            <div>${name}</div>
-            <div style="font-size:12px;color:#aaa;">${date}</div>
-          </div>
-        </div>
-      `;
+  <div class="card">
+    <a href="${url}" target="_blank">
+      <img src="${thumb}">
+    </a>
+    <div class="info">
+      <div class="name">${name}</div>
+      <div class="date">${date}</div>
+    </div>
+  </div>
+`;
 
       document.getElementById("videoList").innerHTML += card;
     });
