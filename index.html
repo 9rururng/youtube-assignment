@@ -25,7 +25,10 @@ fetch(sheetURL)
     const rows = data.split("\n").slice(1);
 
     rows.reverse().forEach(row => {
-      const cols = row.split(",");
+      // 쉼표 2개까지만 나누기 (3열 구조)
+      const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+
+      if (!cols || cols.length < 3) return;
 
       const date = cols[0];
       const name = cols[1];
@@ -40,6 +43,8 @@ fetch(sheetURL)
       } else {
         videoId = url.split("v=")[1]?.split("&")[0];
       }
+
+      if (!videoId) return; // 🔥 이거 중요
 
       const thumb = `https://img.youtube.com/vi/${videoId}/0.jpg`;
 
@@ -59,6 +64,5 @@ fetch(sheetURL)
     });
   });
 </script>
-
 </body>
 </html>
