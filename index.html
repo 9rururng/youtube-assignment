@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>과제 제출 영상</title>
+  <title>J-ROCK 과제 제출 영상</title>
   <style>
     body { background:#111; color:#fff; font-family:sans-serif; padding:20px; }
     .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:20px; }
@@ -13,24 +13,23 @@
 </head>
 <body>
 
-<h2>🎸 과제 제출</h2>
+<h2>🎸 J-ROCK 소모임 과제 제출 영상</h2>
 <div class="grid" id="videoList"></div>
 
 <script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/1kTpj8r_CAJTbxjRgtbF2YZ4rOXsB9shoZ2YPO6o8wzE/edit?usp=sharing";
+const sheetURL = "https://docs.google.com/spreadsheets/d/1kTpj8r_CAJTbxjRgtbF2YZ4rOXsB9shoZ2YPO6o8wzE/export?format=csv";
 
 fetch(sheetURL)
-  .then(res => res.json())
+  .then(res => res.text())
   .then(data => {
-    const rows = data.values.slice(1);
+    const rows = data.split("\n").slice(1);
 
-    // 최신순 정렬 (날짜 기준)
-    rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+    rows.reverse().forEach(row => {
+      const cols = row.split(",");
 
-    rows.forEach(row => {
-      const date = row[0];
-      const name = row[1];
-      const url = row[2];
+      const date = cols[0];
+      const name = cols[1];
+      const url = cols[2];
 
       if (!url) return;
 
