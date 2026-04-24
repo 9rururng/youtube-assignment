@@ -264,7 +264,7 @@ function parseCSV(data,type){
     const name = c[1];
     const url = c[2];
     const external = c[3] || "";
-    const memo = (c[4] || "").slice(0,30);
+    const memo = (c.slice(4).join(",") || "").trim().slice(0,30);
 
     const videoId = getVideoId(url);
 
