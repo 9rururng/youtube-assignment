@@ -256,7 +256,7 @@ function loadAll(){
 
 /* parse */
 function parseCSV(data,type){
-  data.split("\n").slice(1).forEach(row=>{
+  data.split("\n").slice(4).forEach(row=>{
     const c = row.split(",");
     if(c.length < 3) return;
 
