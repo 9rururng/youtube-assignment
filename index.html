@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J-rock 소모임 영상 모음</title>
+<title>J-Rock 소모임 영상 모음</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
@@ -60,10 +60,7 @@ select, input {
   cursor:pointer;
 }
 
-.tab.active {
-  background:#fff;
-  color:#000;
-}
+.tab.active { background:#fff; color:#000; }
 
 .grid {
   display:grid;
@@ -76,11 +73,6 @@ select, input {
   border-radius:16px;
   overflow:hidden;
   cursor:pointer;
-  transition:0.2s;
-}
-
-.card:hover {
-  transform:translateY(-4px);
 }
 
 .name-bar {
@@ -104,7 +96,6 @@ select, input {
   display:block;
 }
 
-/* 외부 링크 */
 .preview {
   width:100%;
   height:100%;
@@ -160,7 +151,7 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 반영 약간 지연될 수 있음</div>
+  <div class="notice">시트 반영 최대 1분</div>
 </div>
 
 <div class="controls">
@@ -200,7 +191,6 @@ let allData = [];
 let currentFilter = "all";
 let ytCache = {};
 let previewCache = {};
-let rowIndex = 0;
 
 /* youtube id */
 function getVideoId(url){
@@ -210,8 +200,10 @@ function getVideoId(url){
   if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
 }
 
-/* youtube title */
+/* youtube title (안 깨지는 버전) */
 async function getYTTitle(id){
+  if(!id) return "";
+
   if(ytCache[id]) return ytCache[id];
 
   try {
@@ -228,7 +220,7 @@ async function getYTTitle(id){
   }
 }
 
-/* external preview */
+/* external preview (fail safe) */
 async function getPreview(url){
   if(previewCache[url]) return previewCache[url];
 
@@ -255,26 +247,16 @@ function loadAll(){
     fetch(urls.assignment).then(r=>r.text()),
     fetch(urls.free).then(r=>r.text())
   ]).then(([a,f])=>{
-
     parseCSV(a,"assignment");
     parseCSV(f,"free");
-
-    // 🔥 핵심: 입력순 기준 정렬 (시트 안 건드림)
-    allData.sort((a,b)=>b.timestamp - a.timestamp);
-
     createNames();
     render();
   });
 }
 
-/* CSV (5번째 줄부터 데이터 반영) */
+/* parse */
 function parseCSV(data,type){
-
-  const rows = data.split("\n").filter(r=>r.trim() !== "");
-
-  // 🔥 5번째 줄부터 시작 (index 4)
-  rows.slice(4).forEach(row=>{
-
+  data.split("\n").slice(4).forEach(row=>{
     const c = row.split(",");
     if(c.length < 3) return;
 
@@ -288,18 +270,7 @@ function parseCSV(data,type){
 
     if(!videoId && !external) return;
 
-    allData.push({
-      date,
-      name,
-      url,
-      external,
-      memo,
-      videoId,
-      type,
-
-      // 🔥 시트 입력순 대신 로딩순 기준
-      timestamp: rowIndex++
-    });
+    allData.push({date,name,url,external,memo,videoId,type});
   });
 }
 
@@ -314,7 +285,7 @@ function createNames(){
   });
 }
 
-/* render */
+/* render (완전 안정 버전) */
 async function render(){
   const box = document.getElementById("videoList");
   box.innerHTML = "";
@@ -323,7 +294,7 @@ async function render(){
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
 
-  const list = allData.filter(v=>{
+  const list = allData.slice().reverse().filter(v=>{
     if(currentFilter!=="all" && v.type!==currentFilter) return false;
     if(name && v.name!==name) return false;
     if(start && new Date(v.date)<new Date(start)) return false;
@@ -335,14 +306,13 @@ async function render(){
 
   for(const v of list){
 
-    const link = v.external || v.url;
+    const link = v.external || `https://youtu.be/${v.videoId}`;
 
     let media = "";
     let title = "";
 
     if(v.external){
       const preview = await getPreview(v.external);
-
       title = preview.title;
 
       media = `
