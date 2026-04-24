@@ -16,21 +16,11 @@ body {
   font-family:'Noto Sans KR', sans-serif;
 }
 
-/* 헤더 */
-.header {
-  margin-bottom:20px;
-}
+.header { margin-bottom:20px; }
+h2 { margin-bottom:5px; }
+.notice { font-size:13px; color:#888; }
 
-h2 {
-  margin-bottom:5px;
-}
-
-.notice {
-  font-size:13px;
-  color:#888;
-}
-
-/* 🔥 컨트롤 바 */
+/* controls */
 .controls {
   background:#111;
   padding:15px;
@@ -59,7 +49,7 @@ select, input {
   color:#fff;
 }
 
-/* 탭 */
+/* tabs */
 .tabs {
   display:flex;
   gap:10px;
@@ -71,19 +61,12 @@ select, input {
   border-radius:20px;
   background:#1a1a1a;
   cursor:pointer;
-  transition:0.2s;
 }
 
-.tab:hover {
-  background:#333;
-}
+.tab:hover { background:#333; }
+.tab.active { background:#fff; color:#000; }
 
-.tab.active {
-  background:#fff;
-  color:#000;
-}
-
-/* 카드 */
+/* grid */
 .grid {
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
@@ -103,7 +86,7 @@ select, input {
   box-shadow:0 15px 40px rgba(0,0,0,0.6);
 }
 
-/* 닉네임 바 */
+/* name */
 .name-bar {
   background:#fff;
   color:#000;
@@ -113,22 +96,44 @@ select, input {
   font-weight:500;
 }
 
-/* 썸네일 */
+/* media area */
 .thumb-wrap {
   position:relative;
+  background:#000;
 }
 
+/* youtube image */
 .card img {
   width:100%;
   aspect-ratio:16/9;
-  transition:0.3s;
+  display:block;
 }
 
-.card:hover img {
-  transform:scale(1.05);
+/* external preview */
+.preview {
+  width:100%;
+  aspect-ratio:16/9;
+  background:#1a1a1a;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:10px;
+  box-sizing:border-box;
 }
 
-/* 카테고리 */
+.preview-title {
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:6px;
+}
+
+.preview-url {
+  font-size:11px;
+  color:#888;
+  word-break:break-all;
+}
+
+/* category */
 .category {
   position:absolute;
   top:8px;
@@ -142,7 +147,7 @@ select, input {
 .category.assignment { background:#2563eb; color:#fff; }
 .category.free { background:#fff; color:#000; }
 
-/* NEW */
+/* badge */
 .badge {
   position:absolute;
   top:8px;
@@ -152,18 +157,14 @@ select, input {
   padding:3px 8px;
   border-radius:12px;
   font-size:10px;
-  font-weight:600;
 }
 
-/* 정보 */
-.info {
-  padding:12px;
-}
+/* info */
+.info { padding:12px; }
 
 .title {
   font-size:14px;
   margin-bottom:4px;
-  line-height:1.3;
 }
 
 .sub {
@@ -171,7 +172,18 @@ select, input {
   color:#aaa;
 }
 
-/* 모바일 */
+.memo-line {
+  margin-top:6px;
+  font-size:12px;
+  color:#bbb;
+  background:#1a1a1a;
+  padding:6px 8px;
+  border-radius:8px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
 @media (max-width:600px) {
   .grid { grid-template-columns:1fr; }
 }
@@ -182,10 +194,9 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 입력 후 반영까지 1분 이내의 시간이 걸릴 수 있어요😋</div>
+  <div class="notice">시트 반영까지 최대 1분 정도 걸릴 수 있어요</div>
 </div>
 
-<!-- 🔥 컨트롤 -->
 <div class="controls">
   <div class="filters">
     <div class="filter-group">
@@ -224,7 +235,38 @@ const urls = {
 let allData = [];
 let currentFilter = "all";
 let cache = {};
+let previewCache = {};
 
+/* youtube id */
+function getVideoId(url){
+  if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
+  if(url.includes("shorts")) return url.split("/shorts/")[1].split("?")[0];
+  if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
+}
+
+/* link preview */
+async function getPreview(url){
+  if(previewCache[url]) return previewCache[url];
+
+  try {
+    const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+
+    const result = {
+      title: data?.data?.title || url,
+      image: data?.data?.image?.url || "",
+      url
+    };
+
+    previewCache[url] = result;
+    return result;
+
+  } catch(e){
+    return { title:url, image:"", url };
+  }
+}
+
+/* youtube title */
 async function getTitle(id){
   const API_KEY = "AIzaSyDeLlRW5ipOfesPCPu9ruc0FCC198fqNY0";
   if(cache[id]) return cache[id];
@@ -237,12 +279,7 @@ async function getTitle(id){
   return title;
 }
 
-function getVideoId(url){
-  if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
-  if(url.includes("shorts")) return url.split("/shorts/")[1].split("?")[0];
-  if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
-}
-
+/* load */
 function loadAll(){
   Promise.all([
     fetch(urls.assignment).then(r=>r.text()),
@@ -255,21 +292,26 @@ function loadAll(){
   });
 }
 
+/* parse */
 function parseCSV(data,type){
   data.split("\n").slice(1).forEach(row=>{
     const cols = row.split(",");
-    if(cols.length<3) return;
+    if(cols.length < 3) return;
 
     const date = cols[0];
     const name = cols[1];
     const url = cols[2];
+    const external = cols[3] || "";
+    const memo = (cols[4] || "").slice(0,30);
+
     const videoId = getVideoId(url);
     if(!videoId) return;
 
-    allData.push({date,name,url,videoId,type});
+    allData.push({date,name,url,external,memo,videoId,type});
   });
 }
 
+/* name filter */
 function createNameOptions(){
   const select = document.getElementById("nameFilter");
   [...new Set(allData.map(v=>v.name))].forEach(n=>{
@@ -280,6 +322,7 @@ function createNameOptions(){
   });
 }
 
+/* render */
 async function render(){
   const container = document.getElementById("videoList");
   container.innerHTML = "";
@@ -290,6 +333,7 @@ async function render(){
   const end = document.getElementById("endDate").value;
 
   for(const item of allData.slice().reverse()){
+
     if(currentFilter!=="all" && item.type!==currentFilter) continue;
     if(nameFilter && item.name!==nameFilter) continue;
     if(start && new Date(item.date)<new Date(start)) continue;
@@ -298,27 +342,50 @@ async function render(){
     const diff = (now - new Date(item.date))/(1000*60*60*24);
     const isNew = diff>=0 && diff<3;
 
-    const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
     const title = await getTitle(item.videoId);
 
+    let mediaHTML = "";
+
+    /* 🔥 외부 링크 있으면 preview 카드 */
+    if(item.external){
+      const preview = await getPreview(item.external);
+
+      mediaHTML = `
+        <div class="preview">
+          <div class="preview-title">${preview.title}</div>
+          <div class="preview-url">${preview.url}</div>
+        </div>
+      `;
+    } else {
+      const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
+      mediaHTML = `<img src="${thumb}">`;
+    }
+
+    const openUrl = item.external ? item.external : item.url;
+
     container.innerHTML += `
-      <div class="card" onclick="window.open('${item.url}')">
+      <div class="card" onclick="window.open('${openUrl}')">
 
         <div class="name-bar">${item.name}</div>
 
         <div class="thumb-wrap">
+
           <div class="category ${item.type}">
             ${item.type==="assignment"?"과제":"연습"}
           </div>
 
           ${isNew ? '<div class="badge">NEW</div>' : ''}
 
-          <img src="${thumb}">
+          ${mediaHTML}
+
         </div>
 
         <div class="info">
           <div class="title">${title}</div>
           <div class="sub">${item.date}</div>
+
+          ${item.memo ? `<div class="memo-line">💬 ${item.memo}</div>` : ""}
+
         </div>
 
       </div>
@@ -326,6 +393,7 @@ async function render(){
   }
 }
 
+/* filter */
 function filter(type,i){
   currentFilter=type;
   document.querySelectorAll('.tab').forEach((t,idx)=>{
