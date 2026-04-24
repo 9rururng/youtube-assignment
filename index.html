@@ -69,7 +69,7 @@ select, input {
 }
 
 /* =========================
-   CARD FIX
+   CARD FIX (완전 통일)
 ========================= */
 .card {
   background:#121212;
@@ -82,6 +82,7 @@ select, input {
   flex-direction:column;
 }
 
+/* 이름 */
 .name-bar {
   background:#fff;
   color:#000;
@@ -91,21 +92,27 @@ select, input {
   flex-shrink:0;
 }
 
+/* =========================
+   MEDIA FIX (핵심)
+========================= */
 .thumb-wrap {
   width:100%;
   aspect-ratio:16/9;
   background:#000;
+
   flex-shrink:0;
+  overflow:hidden;
+  display:flex;
 }
 
 .thumb-wrap img {
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit:cover;   /* 🔥 유튜브/외부 동일 처리 */
   display:block;
 }
 
-/* 외부 링크 */
+/* 외부링크 */
 .preview {
   width:100%;
   height:100%;
@@ -137,9 +144,10 @@ select, input {
   flex:1;
   display:flex;
   flex-direction:column;
+  min-height:0;
 }
 
-/* 🔥 제목 2줄 고정 */
+/* 제목 2줄 고정 */
 .title {
   font-size:14px;
   margin-bottom:4px;
@@ -158,7 +166,7 @@ select, input {
   color:#aaa;
 }
 
-/* 메모 하단 고정 */
+/* 메모 항상 하단 */
 .memo {
   margin-top:auto;
   font-size:12px;
@@ -170,6 +178,8 @@ select, input {
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+
+  flex-shrink:0;
 }
 </style>
 </head>
@@ -178,23 +188,23 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 입력 후 반영까지 1분 정도 기다려 주세요😋</div>
+  <div class="notice">시트 입력 후 1분 내 반영</div>
 </div>
 
 <div class="controls">
   <div class="filters">
-    <div class="filter-group">
-      <span>닉네임</span>
+    <div>
+      <span>닉네임</span><br>
       <select id="nameFilter"><option value="">전체</option></select>
     </div>
 
-    <div class="filter-group">
-      <span>시작일</span>
+    <div>
+      <span>시작일</span><br>
       <input type="date" id="startDate">
     </div>
 
-    <div class="filter-group">
-      <span>종료일</span>
+    <div>
+      <span>종료일</span><br>
       <input type="date" id="endDate">
     </div>
   </div>
