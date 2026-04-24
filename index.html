@@ -5,8 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>영상 모음</title>
 
+<!-- ✅ Noto Sans 폰트 추가 -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
-body { background:#0f0f0f; color:#fff; margin:0; padding:20px; }
+body { 
+  background:#0f0f0f; 
+  color:#fff; 
+  margin:0; 
+  padding:20px;
+  font-family: 'Noto Sans KR', sans-serif; /* ✅ 적용 */
+}
 
 .tabs { display:flex; gap:10px; margin-bottom:15px; }
 
@@ -42,6 +51,7 @@ body { background:#0f0f0f; color:#fff; margin:0; padding:20px; }
   background:red;
   font-size:11px;
   padding:4px 6px;
+  border-radius:6px;
 }
 
 .card img {
@@ -104,11 +114,14 @@ function parseCSV(data, type){
     const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
     if(!cols || cols.length<3) return;
 
-    const date = cols[0];
+    let date = cols[0];
     const name = cols[1];
     const url = cols[2];
 
     if(!url) return;
+
+    // ✅ 날짜 변환 (NEW용)
+    date = date.replace(/\./g, "-").replace(/\s/g, "");
 
     let videoId;
     if(url.includes("youtu.be")){
@@ -130,8 +143,10 @@ function render(data){
   const now = new Date();
 
   data.slice().reverse().forEach(item=>{
-    const diff = (now - new Date(item.date))/(1000*60*60*24);
-    const isNew = diff < 3;
+    const itemDate = new Date(item.date);
+
+    const diff = (now - itemDate)/(1000*60*60*24);
+    const isNew = diff >= 0 && diff < 3;
 
     const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
 
