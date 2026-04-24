@@ -25,7 +25,6 @@ h2 { margin-bottom:5px; }
   padding:15px;
   border-radius:16px;
   margin:20px 0;
-  box-shadow:0 5px 20px rgba(0,0,0,0.4);
 }
 
 .filters {
@@ -61,7 +60,6 @@ select, input {
   cursor:pointer;
 }
 
-.tab:hover { background:#333; }
 .tab.active { background:#fff; color:#000; }
 
 .grid {
@@ -80,7 +78,6 @@ select, input {
 
 .card:hover {
   transform:translateY(-6px);
-  box-shadow:0 15px 40px rgba(0,0,0,0.6);
 }
 
 .name-bar {
@@ -89,12 +86,6 @@ select, input {
   text-align:center;
   padding:8px;
   font-size:14px;
-  font-weight:500;
-}
-
-.thumb-wrap {
-  position:relative;
-  background:#000;
 }
 
 .thumb-wrap img {
@@ -107,9 +98,6 @@ select, input {
   width:100%;
   aspect-ratio:16/9;
   background:#1a1a1a;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
   padding:12px;
   box-sizing:border-box;
 }
@@ -117,7 +105,6 @@ select, input {
 .preview-title {
   font-size:13px;
   font-weight:600;
-  margin-bottom:6px;
 }
 
 .preview-url {
@@ -132,7 +119,6 @@ select, input {
 
 .title {
   font-size:14px;
-  margin-bottom:4px;
 }
 
 .sub {
@@ -147,11 +133,10 @@ select, input {
   background:#1a1a1a;
   padding:6px 8px;
   border-radius:8px;
-  overflow:hidden;
   white-space:nowrap;
+  overflow:hidden;
   text-overflow:ellipsis;
 }
-
 </style>
 </head>
 
@@ -159,7 +144,7 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 반영까지 최대 1분</div>
+  <div class="notice">시트 반영까지 약간의 시간이 걸릴 수 있어요</div>
 </div>
 
 <div class="controls">
@@ -202,7 +187,7 @@ let currentFilter = "all";
 let cache = {};
 let previewCache = {};
 
-/* youtube id */
+/* 유튜브 ID */
 function getVideoId(url){
   if(!url) return null;
   if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
@@ -210,7 +195,7 @@ function getVideoId(url){
   if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
 }
 
-/* external preview */
+/* 외부 링크 미리보기 */
 async function getPreview(url){
   if(previewCache[url]) return previewCache[url];
 
@@ -220,32 +205,18 @@ async function getPreview(url){
 
     const result = {
       title: data?.data?.title || url,
-      image: data?.data?.image?.url || "",
       url
     };
 
     previewCache[url] = result;
     return result;
 
-  } catch(e){
-    return { title:url, image:"", url };
+  } catch {
+    return { title:url, url };
   }
 }
 
-/* youtube title */
-async function getTitle(id){
-  const API_KEY = "AIzaSyDeLlRW5ipOfesPCPu9ruc0FCC198fqNY0";
-  if(cache[id]) return cache[id];
-
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${API_KEY}`);
-  const data = await res.json();
-
-  const title = data.items?.[0]?.snippet?.title || "제목 없음";
-  cache[id] = title;
-  return title;
-}
-
-/* load */
+/* 데이터 로드 */
 function loadAll(){
   Promise.all([
     fetch(urls.assignment).then(r=>r.text()),
@@ -258,7 +229,7 @@ function loadAll(){
   });
 }
 
-/* parse */
+/* CSV */
 function parseCSV(data,type){
   data.split("\n").slice(1).forEach(row=>{
     const cols = row.split(",");
@@ -272,7 +243,6 @@ function parseCSV(data,type){
 
     const videoId = getVideoId(url);
 
-    // 🔥 OR 구조 (둘 중 하나만 있어도 OK)
     if(!videoId && !external) return;
 
     allData.push({
@@ -287,7 +257,7 @@ function parseCSV(data,type){
   });
 }
 
-/* name */
+/* 닉네임 */
 function createNameOptions(){
   const select = document.getElementById("nameFilter");
   [...new Set(allData.map(v=>v.name))].forEach(n=>{
@@ -298,12 +268,11 @@ function createNameOptions(){
   });
 }
 
-/* render */
+/* 렌더 */
 async function render(){
   const container = document.getElementById("videoList");
   container.innerHTML = "";
 
-  const now = new Date();
   const nameFilter = document.getElementById("nameFilter").value;
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
@@ -319,14 +288,13 @@ async function render(){
     let mediaHTML = "";
     let openUrl = item.external || item.url;
 
-    /* 외부 링크 우선 */
+    /* 외부 링크 */
     if(item.external){
       const preview = await getPreview(item.external);
-
       title = preview.title;
 
       mediaHTML = `
-        <div class="preview" onclick="window.open('${item.external}')">
+        <div class="preview">
           <div class="preview-title">${preview.title}</div>
           <div class="preview-url">${preview.url}</div>
         </div>
@@ -336,11 +304,9 @@ async function render(){
     /* 유튜브 */
     else if(item.videoId){
       const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
-      title = await getTitle(item.videoId);
+      title = item.videoId;
 
-      mediaHTML = `
-        <img src="${thumb}" onclick="window.open('${item.url}')">
-      `;
+      mediaHTML = `<img src="${thumb}">`;
     }
 
     container.innerHTML += `
@@ -357,7 +323,6 @@ async function render(){
           <div class="sub">${item.date}</div>
 
           ${item.memo ? `<div class="memo-line">💬 ${item.memo}</div>` : ""}
-
         </div>
 
       </div>
@@ -365,7 +330,7 @@ async function render(){
   }
 }
 
-/* filter */
+/* 필터 */
 function filter(type,i){
   currentFilter=type;
   document.querySelectorAll('.tab').forEach((t,idx)=>{
