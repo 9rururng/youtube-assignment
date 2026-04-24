@@ -17,7 +17,7 @@ body {
 }
 
 .header { margin-bottom:20px; }
-h2 { margin-bottom:5px; }
+h2 { margin:0 0 5px 0; }
 .notice { font-size:13px; color:#888; }
 
 .controls {
@@ -70,14 +70,14 @@ select, input {
 
 .card {
   background:#121212;
-  border-radius:18px;
+  border-radius:16px;
   overflow:hidden;
   cursor:pointer;
-  transition:0.3s;
+  transition:0.2s;
 }
 
 .card:hover {
-  transform:translateY(-6px);
+  transform:translateY(-4px);
 }
 
 .name-bar {
@@ -88,23 +88,37 @@ select, input {
   font-size:14px;
 }
 
-.thumb-wrap img {
+/* media */
+.thumb-wrap {
   width:100%;
   aspect-ratio:16/9;
+  background:#000;
+  overflow:hidden;
+}
+
+.thumb-wrap img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
   display:block;
 }
 
+/* external preview */
 .preview {
   width:100%;
-  aspect-ratio:16/9;
+  height:100%;
   background:#1a1a1a;
-  padding:12px;
+  padding:10px;
   box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
 }
 
 .preview-title {
   font-size:13px;
   font-weight:600;
+  margin-bottom:5px;
 }
 
 .preview-url {
@@ -113,12 +127,14 @@ select, input {
   word-break:break-all;
 }
 
+/* info */
 .info {
   padding:12px;
 }
 
 .title {
   font-size:14px;
+  margin-bottom:4px;
 }
 
 .sub {
@@ -126,7 +142,7 @@ select, input {
   color:#aaa;
 }
 
-.memo-line {
+.memo {
   margin-top:6px;
   font-size:12px;
   color:#bbb;
@@ -144,16 +160,14 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 반영까지 약간의 시간이 걸릴 수 있어요</div>
+  <div class="notice">시트 반영 약간 지연될 수 있음</div>
 </div>
 
 <div class="controls">
   <div class="filters">
     <div class="filter-group">
       <span>닉네임</span>
-      <select id="nameFilter">
-        <option value="">전체</option>
-      </select>
+      <select id="nameFilter"><option value="">전체</option></select>
     </div>
 
     <div class="filter-group">
@@ -168,9 +182,9 @@ select, input {
   </div>
 
   <div class="tabs">
-    <div class="tab active" onclick="filter('all',0)">전체</div>
-    <div class="tab" onclick="filter('assignment',1)">과제</div>
-    <div class="tab" onclick="filter('free',2)">연습</div>
+    <div class="tab active" onclick="setFilter('all',0)">전체</div>
+    <div class="tab" onclick="setFilter('assignment',1)">과제</div>
+    <div class="tab" onclick="setFilter('free',2)">연습</div>
   </div>
 </div>
 
@@ -184,10 +198,8 @@ const urls = {
 
 let allData = [];
 let currentFilter = "all";
-let cache = {};
-let previewCache = {};
 
-/* 유튜브 ID */
+/* youtube id */
 function getVideoId(url){
   if(!url) return null;
   if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
@@ -195,28 +207,7 @@ function getVideoId(url){
   if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
 }
 
-/* 외부 링크 미리보기 */
-async function getPreview(url){
-  if(previewCache[url]) return previewCache[url];
-
-  try {
-    const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-
-    const result = {
-      title: data?.data?.title || url,
-      url
-    };
-
-    previewCache[url] = result;
-    return result;
-
-  } catch {
-    return { title:url, url };
-  }
-}
-
-/* 데이터 로드 */
+/* load */
 function loadAll(){
   Promise.all([
     fetch(urls.assignment).then(r=>r.text()),
@@ -224,105 +215,90 @@ function loadAll(){
   ]).then(([a,f])=>{
     parseCSV(a,"assignment");
     parseCSV(f,"free");
-    createNameOptions();
+    createNames();
     render();
   });
 }
 
-/* CSV */
+/* parse */
 function parseCSV(data,type){
   data.split("\n").slice(1).forEach(row=>{
-    const cols = row.split(",");
-    if(cols.length < 3) return;
+    const c = row.split(",");
+    if(c.length < 3) return;
 
-    const date = cols[0];
-    const name = cols[1];
-    const url = cols[2];
-    const external = cols[3] || "";
-    const memo = (cols[4] || "").slice(0,30);
+    const date = c[0];
+    const name = c[1];
+    const url = c[2];
+    const external = c[3] || "";
+    const memo = (c[4] || "").slice(0,30);
 
     const videoId = getVideoId(url);
 
     if(!videoId && !external) return;
 
-    allData.push({
-      date,
-      name,
-      url,
-      external,
-      memo,
-      videoId,
-      type
-    });
+    allData.push({date,name,url,external,memo,videoId,type});
   });
 }
 
-/* 닉네임 */
-function createNameOptions(){
-  const select = document.getElementById("nameFilter");
+/* name */
+function createNames(){
+  const sel = document.getElementById("nameFilter");
   [...new Set(allData.map(v=>v.name))].forEach(n=>{
-    const opt = document.createElement("option");
-    opt.value = n;
-    opt.textContent = n;
-    select.appendChild(opt);
+    const o = document.createElement("option");
+    o.value = n;
+    o.textContent = n;
+    sel.appendChild(o);
   });
 }
 
-/* 렌더 */
-async function render(){
-  const container = document.getElementById("videoList");
-  container.innerHTML = "";
+/* render */
+function render(){
+  const box = document.getElementById("videoList");
+  box.innerHTML = "";
 
-  const nameFilter = document.getElementById("nameFilter").value;
+  const name = document.getElementById("nameFilter").value;
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
 
-  for(const item of allData.slice().reverse()){
+  for(const v of allData.slice().reverse()){
 
-    if(currentFilter!=="all" && item.type!==currentFilter) continue;
-    if(nameFilter && item.name!==nameFilter) continue;
-    if(start && new Date(item.date)<new Date(start)) continue;
-    if(end && new Date(item.date)>new Date(end)) continue;
+    if(currentFilter!=="all" && v.type!==currentFilter) continue;
+    if(name && v.name!==name) continue;
+    if(start && new Date(v.date)<new Date(start)) continue;
+    if(end && new Date(v.date)>new Date(end)) continue;
 
-    let title = "";
-    let mediaHTML = "";
-    let openUrl = item.external || item.url;
+    const link = v.external || v.url;
+
+    let media = "";
 
     /* 외부 링크 */
-    if(item.external){
-      const preview = await getPreview(item.external);
-      title = preview.title;
-
-      mediaHTML = `
+    if(v.external){
+      media = `
         <div class="preview">
-          <div class="preview-title">${preview.title}</div>
-          <div class="preview-url">${preview.url}</div>
+          <div class="preview-title">외부 링크</div>
+          <div class="preview-url">${v.external}</div>
         </div>
       `;
     }
-
     /* 유튜브 */
-    else if(item.videoId){
-      const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
-      title = item.videoId;
-
-      mediaHTML = `<img src="${thumb}">`;
+    else {
+      const thumb = `https://img.youtube.com/vi/${v.videoId}/0.jpg`;
+      media = `<img src="${thumb}">`;
     }
 
-    container.innerHTML += `
-      <div class="card" onclick="window.open('${openUrl}')">
+    box.innerHTML += `
+      <div class="card" onclick="window.open('${link}','_blank')">
 
-        <div class="name-bar">${item.name}</div>
+        <div class="name-bar">${v.name}</div>
 
         <div class="thumb-wrap">
-          ${mediaHTML}
+          ${media}
         </div>
 
         <div class="info">
-          <div class="title">${title}</div>
-          <div class="sub">${item.date}</div>
-
-          ${item.memo ? `<div class="memo-line">💬 ${item.memo}</div>` : ""}
+          <div class="title">${v.videoId || v.external}</div>
+          <div class="sub">${v.date}</div>
+          ${v.memo ? `<div class="memo">💬 ${v.memo}</div>` : ""}
         </div>
 
       </div>
@@ -330,11 +306,11 @@ async function render(){
   }
 }
 
-/* 필터 */
-function filter(type,i){
-  currentFilter=type;
-  document.querySelectorAll('.tab').forEach((t,idx)=>{
-    t.classList.toggle('active', idx===i);
+/* filter */
+function setFilter(t,i){
+  currentFilter=t;
+  document.querySelectorAll(".tab").forEach((el,idx)=>{
+    el.classList.toggle("active", idx===i);
   });
   render();
 }
