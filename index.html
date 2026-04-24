@@ -16,14 +16,12 @@ body {
   font-family:'Noto Sans KR', sans-serif;
 }
 
-/* 안내 문구 */
 .notice {
   font-size:13px;
   color:#aaa;
   margin-bottom:15px;
 }
 
-/* 필터 */
 .filters {
   display:flex;
   gap:20px;
@@ -35,19 +33,16 @@ body {
   background:#181818;
   padding:12px;
   border-radius:12px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
 }
 
 .label {
   font-size:12px;
   color:#aaa;
+  margin-bottom:5px;
 }
 
 .date-range {
   display:flex;
-  align-items:center;
   gap:6px;
 }
 
@@ -59,7 +54,6 @@ select, input[type="date"] {
   color:#fff;
 }
 
-/* 탭 */
 .tabs {
   display:flex;
   gap:10px;
@@ -78,7 +72,6 @@ select, input[type="date"] {
   color:#000;
 }
 
-/* 카드 */
 .grid {
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
@@ -129,6 +122,16 @@ select, input[type="date"] {
 
 .info { padding:10px; }
 
+.title {
+  font-size:14px;
+  font-weight:500;
+}
+
+.sub {
+  font-size:12px;
+  color:#aaa;
+}
+
 @media (max-width:600px) {
   .grid { grid-template-columns:1fr; }
 }
@@ -140,9 +143,7 @@ select, input[type="date"] {
 <h2>🎸 영상 모음</h2>
 <div class="notice">시트 입력 후 반영까지 1분 이내의 시간이 걸릴 수 있어요😋</div>
 
-<!-- 필터 -->
 <div class="filters">
-
   <div class="filter-group">
     <div class="label">닉네임</div>
     <select id="nameFilter">
@@ -158,10 +159,8 @@ select, input[type="date"] {
       <input type="date" id="endDate">
     </div>
   </div>
-
 </div>
 
-<!-- 탭 -->
 <div class="tabs">
   <div class="tab active" onclick="filter('all',0)">전체</div>
   <div class="tab" onclick="filter('assignment',1)">과제</div>
@@ -178,15 +177,37 @@ const urls = {
 
 let allData = [];
 let currentFilter = "all";
+let cache = {}; // 🔥 캐시
 
-/* 탭 */
-function setTab(i){
-  document.querySelectorAll('.tab').forEach((t,idx)=>{
-    t.classList.toggle('active', idx===i);
-  });
+/* 🔥 API 함수 */
+async function getYoutubeInfo(videoId){
+  const API_KEY = "AIzaSyDeLlRW5ipOfesPCPu9ruc0FCC198fqNY0";
+
+  if(cache[videoId]) return cache[videoId];
+
+  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if(data.items.length === 0) return null;
+
+  const result = {
+    title: data.items[0].snippet.title,
+    channel: data.items[0].snippet.channelTitle
+  };
+
+  cache[videoId] = result;
+  return result;
 }
 
-/* 전체 로드 */
+/* videoId 추출 */
+function getVideoId(url){
+  if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
+  if(url.includes("shorts")) return url.split("/shorts/")[1].split("?")[0];
+  if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
+  return null;
+}
+
 function loadAll(){
   Promise.all([
     fetch(urls.assignment).then(r=>r.text()),
@@ -201,21 +222,6 @@ function loadAll(){
   });
 }
 
-/* 🔥 유튜브 ID 추출 (쇼츠 포함) */
-function getVideoId(url){
-  if(url.includes("youtu.be")){
-    return url.split("/").pop().split("?")[0];
-  }
-  if(url.includes("shorts")){
-    return url.split("/shorts/")[1].split("?")[0];
-  }
-  if(url.includes("v=")){
-    return url.split("v=")[1].split("&")[0];
-  }
-  return null;
-}
-
-/* CSV 파싱 */
 function parseCSV(data,type){
   const rows = data.split("\n").slice(1);
 
@@ -227,8 +233,6 @@ function parseCSV(data,type){
     const name = cols[1];
     const url = cols[2];
 
-    if(!url) return;
-
     date = date.replace(/\./g,"-").replace(/\s/g,"");
 
     const videoId = getVideoId(url);
@@ -238,7 +242,6 @@ function parseCSV(data,type){
   });
 }
 
-/* 닉네임 리스트 */
 function createNameOptions(){
   const select = document.getElementById("nameFilter");
   const names = [...new Set(allData.map(v=>v.name))];
@@ -251,8 +254,7 @@ function createNameOptions(){
   });
 }
 
-/* 렌더 */
-function render(){
+async function render(){
   const container = document.getElementById("videoList");
   container.innerHTML = "";
 
@@ -261,18 +263,21 @@ function render(){
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
 
-  allData.slice().reverse().forEach(item=>{
+  for(const item of allData.slice().reverse()){
 
-    if(currentFilter!=="all" && item.type!==currentFilter) return;
-    if(selectedName && item.name !== selectedName) return;
+    if(currentFilter!=="all" && item.type!==currentFilter) continue;
+    if(selectedName && item.name !== selectedName) continue;
 
-    if(start && new Date(item.date) < new Date(start)) return;
-    if(end && new Date(item.date) > new Date(end)) return;
+    if(start && new Date(item.date) < new Date(start)) continue;
+    if(end && new Date(item.date) > new Date(end)) continue;
 
     const diff = (now - new Date(item.date))/(1000*60*60*24);
     const isNew = diff>=0 && diff<3;
 
     const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
+
+    const info = await getYoutubeInfo(item.videoId);
+    const title = info ? info.title : "제목 없음";
 
     container.innerHTML += `
       <div class="card" onclick="window.open('${item.url}')">
@@ -280,22 +285,22 @@ function render(){
         <img src="${thumb}">
         <div class="play">▶</div>
         <div class="info">
-          <div>${item.name}</div>
-          <div style="font-size:12px;color:#aaa">${item.date}</div>
+          <div class="title">${title}</div>
+          <div class="sub">${item.name} · ${item.date}</div>
         </div>
       </div>
     `;
-  });
+  }
 }
 
-/* 필터 */
 function filter(type,i){
   currentFilter=type;
-  setTab(i);
+  document.querySelectorAll('.tab').forEach((t,idx)=>{
+    t.classList.toggle('active', idx===i);
+  });
   render();
 }
 
-/* 이벤트 */
 document.getElementById("nameFilter").addEventListener("change", render);
 document.getElementById("startDate").addEventListener("change", render);
 document.getElementById("endDate").addEventListener("change", render);
