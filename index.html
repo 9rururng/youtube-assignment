@@ -3,42 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J-ROCK 소모임 영상 모음</title>
+<title>영상 모음</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
 <style>
 body {
-  background:#0f0f0f;
+  background:#0b0b0b;
   color:#fff;
   margin:0;
   padding:20px;
   font-family:'Noto Sans KR', sans-serif;
 }
 
-.notice {
-  font-size:13px;
-  color:#aaa;
-  margin-bottom:15px;
+/* 헤더 */
+h2 {
+  font-weight:700;
+  margin-bottom:5px;
 }
 
+.notice {
+  font-size:13px;
+  color:#888;
+  margin-bottom:20px;
+}
+
+/* 필터 */
 .filters {
   display:flex;
-  gap:20px;
+  gap:15px;
   margin-bottom:20px;
   flex-wrap:wrap;
 }
 
 .filter-group {
-  background:#181818;
+  background:#151515;
   padding:12px;
-  border-radius:12px;
+  border-radius:14px;
 }
 
 .label {
   font-size:12px;
   color:#aaa;
-  margin-bottom:5px;
+  margin-bottom:6px;
 }
 
 .date-range {
@@ -54,17 +61,23 @@ select, input[type="date"] {
   color:#fff;
 }
 
+/* 탭 */
 .tabs {
   display:flex;
   gap:10px;
-  margin-bottom:15px;
+  margin-bottom:20px;
 }
 
 .tab {
-  padding:8px 14px;
+  padding:8px 16px;
   border-radius:20px;
-  background:#222;
+  background:#1a1a1a;
   cursor:pointer;
+  transition:0.2s;
+}
+
+.tab:hover {
+  background:#333;
 }
 
 .tab.active {
@@ -72,59 +85,97 @@ select, input[type="date"] {
   color:#000;
 }
 
+/* 카드 */
 .grid {
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
-  gap:18px;
+  gap:20px;
 }
 
 .card {
-  background:#181818;
-  border-radius:14px;
+  background:#121212;
+  border-radius:18px;
   overflow:hidden;
   position:relative;
   cursor:pointer;
+  transition:0.3s;
+}
+
+.card:hover {
+  transform:translateY(-6px);
+  box-shadow:0 15px 40px rgba(0,0,0,0.6);
 }
 
 .card img {
   width:100%;
   aspect-ratio:16/9;
-  transition:0.3s;
+  transition:0.4s;
 }
 
 .card:hover img {
-  transform:scale(1.08);
-  filter:brightness(0.7);
+  transform:scale(1.1);
+  filter:brightness(0.6);
 }
 
+/* 플레이 버튼 */
 .play {
   position:absolute;
   top:50%;
   left:50%;
   transform:translate(-50%,-50%);
+  font-size:32px;
   opacity:0;
-  font-size:30px;
+  transition:0.3s;
 }
 
 .card:hover .play {
   opacity:1;
 }
 
+/* NEW */
 .badge {
   position:absolute;
-  top:8px;
-  left:8px;
-  background:red;
+  top:10px;
+  left:10px;
+  background:#ff3b3b;
+  padding:4px 10px;
+  border-radius:20px;
   font-size:11px;
-  padding:4px 6px;
-  border-radius:6px;
+  font-weight:600;
 }
 
-.info { padding:10px; }
+/* 카테고리 */
+.category {
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:5px 12px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:600;
+  backdrop-filter: blur(6px);
+}
+
+/* 과제 */
+.category.assignment {
+  background:rgba(255,59,59,0.85);
+}
+
+/* 연습 */
+.category.free {
+  background:rgba(59,130,246,0.85);
+}
+
+/* 정보 */
+.info {
+  padding:12px;
+}
 
 .title {
   font-size:14px;
   font-weight:500;
+  margin-bottom:4px;
+  line-height:1.3;
 }
 
 .sub {
@@ -132,8 +183,11 @@ select, input[type="date"] {
   color:#aaa;
 }
 
+/* 모바일 */
 @media (max-width:600px) {
-  .grid { grid-template-columns:1fr; }
+  .grid {
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
@@ -143,6 +197,7 @@ select, input[type="date"] {
 <h2>🎸 영상 모음</h2>
 <div class="notice">시트 입력 후 반영까지 1분 이내의 시간이 걸릴 수 있어요😋</div>
 
+<!-- 필터 -->
 <div class="filters">
   <div class="filter-group">
     <div class="label">닉네임</div>
@@ -161,6 +216,7 @@ select, input[type="date"] {
   </div>
 </div>
 
+<!-- 탭 -->
 <div class="tabs">
   <div class="tab active" onclick="filter('all',0)">전체</div>
   <div class="tab" onclick="filter('assignment',1)">과제</div>
@@ -177,30 +233,27 @@ const urls = {
 
 let allData = [];
 let currentFilter = "all";
-let cache = {}; // 🔥 캐시
+let cache = {};
 
-/* 🔥 API 함수 */
+/* 🔥 API */
 async function getYoutubeInfo(videoId){
   const API_KEY = "AIzaSyDeLlRW5ipOfesPCPu9ruc0FCC198fqNY0";
 
   if(cache[videoId]) return cache[videoId];
 
-  const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
-  const res = await fetch(url);
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`);
   const data = await res.json();
 
   if(data.items.length === 0) return null;
 
   const result = {
-    title: data.items[0].snippet.title,
-    channel: data.items[0].snippet.channelTitle
+    title: data.items[0].snippet.title
   };
 
   cache[videoId] = result;
   return result;
 }
 
-/* videoId 추출 */
 function getVideoId(url){
   if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
   if(url.includes("shorts")) return url.split("/shorts/")[1].split("?")[0];
@@ -216,7 +269,6 @@ function loadAll(){
     allData = [];
     parseCSV(a,"assignment");
     parseCSV(f,"free");
-
     createNameOptions();
     render();
   });
@@ -229,11 +281,9 @@ function parseCSV(data,type){
     const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
     if(!cols || cols.length<3) return;
 
-    let date = cols[0];
+    let date = cols[0].replace(/\./g,"-").trim();
     const name = cols[1];
     const url = cols[2];
-
-    date = date.replace(/\./g,"-").replace(/\s/g,"");
 
     const videoId = getVideoId(url);
     if(!videoId) return;
@@ -275,19 +325,26 @@ async function render(){
     const isNew = diff>=0 && diff<3;
 
     const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
-
     const info = await getYoutubeInfo(item.videoId);
     const title = info ? info.title : "제목 없음";
 
     container.innerHTML += `
       <div class="card" onclick="window.open('${item.url}')">
+
         ${isNew ? '<div class="badge">NEW</div>' : ''}
+
+        <div class="category ${item.type}">
+          ${item.type === "assignment" ? "과제" : "연습"}
+        </div>
+
         <img src="${thumb}">
         <div class="play">▶</div>
+
         <div class="info">
           <div class="title">${title}</div>
           <div class="sub">${item.name} · ${item.date}</div>
         </div>
+
       </div>
     `;
   }
