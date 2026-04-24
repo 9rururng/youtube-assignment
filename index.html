@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J-ROCK 소모임 영상 모음</title>
+<title>J-Rock 소모임 영상 모음</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
@@ -60,10 +60,7 @@ select, input {
   cursor:pointer;
 }
 
-.tab.active {
-  background:#fff;
-  color:#000;
-}
+.tab.active { background:#fff; color:#000; }
 
 .grid {
   display:grid;
@@ -72,25 +69,19 @@ select, input {
 }
 
 /* =========================
-   CARD FIX (핵심)
+   CARD FIX
 ========================= */
 .card {
   background:#121212;
   border-radius:16px;
   overflow:hidden;
   cursor:pointer;
-  transition:0.2s;
 
-  height:340px;              /* 🔥 카드 높이 고정 */
+  height:340px;              /* 🔥 고정 */
   display:flex;
   flex-direction:column;
 }
 
-.card:hover {
-  transform:translateY(-4px);
-}
-
-/* 이름 */
 .name-bar {
   background:#fff;
   color:#000;
@@ -100,7 +91,6 @@ select, input {
   flex-shrink:0;
 }
 
-/* 썸네일 */
 .thumb-wrap {
   width:100%;
   aspect-ratio:16/9;
@@ -130,7 +120,7 @@ select, input {
 .preview-title {
   font-size:13px;
   font-weight:600;
-  margin-bottom:6px;
+  margin-bottom:5px;
 }
 
 .preview-url {
@@ -149,7 +139,7 @@ select, input {
   flex-direction:column;
 }
 
-/* 제목 (2줄 고정) */
+/* 🔥 제목 2줄 고정 */
 .title {
   font-size:14px;
   margin-bottom:4px;
@@ -160,8 +150,7 @@ select, input {
   -webkit-box-orient:vertical;
 
   overflow:hidden;
-
-  min-height:36px; /* 🔥 높이 고정 */
+  min-height:36px;
 }
 
 .sub {
@@ -169,7 +158,7 @@ select, input {
   color:#aaa;
 }
 
-/* 메모 (항상 하단 고정) */
+/* 메모 하단 고정 */
 .memo {
   margin-top:auto;
   font-size:12px;
@@ -229,7 +218,6 @@ let allData = [];
 let currentFilter = "all";
 let ytCache = {};
 let previewCache = {};
-let rowIndex = 0;
 
 /* youtube id */
 function getVideoId(url){
@@ -241,6 +229,8 @@ function getVideoId(url){
 
 /* youtube title */
 async function getYTTitle(id){
+  if(!id) return "";
+
   if(ytCache[id]) return ytCache[id];
 
   try {
@@ -284,22 +274,16 @@ function loadAll(){
     fetch(urls.assignment).then(r=>r.text()),
     fetch(urls.free).then(r=>r.text())
   ]).then(([a,f])=>{
-
     parseCSV(a,"assignment");
     parseCSV(f,"free");
-
     createNames();
     render();
   });
 }
 
-/* CSV (5번째 줄부터) */
+/* parse */
 function parseCSV(data,type){
-
-  const rows = data.split("\n").filter(r=>r.trim() !== "");
-
-  rows.slice(4).forEach(row=>{
-
+  data.split("\n").slice(4).forEach(row=>{
     const c = row.split(",");
     if(c.length < 3) return;
 
@@ -307,22 +291,13 @@ function parseCSV(data,type){
     const name = c[1];
     const url = c[2];
     const external = c[3] || "";
-    const memo = (c[4] || "").slice(0,30);
+    const memo = (c.slice(4).join(",") || "").trim().slice(0,30);
 
     const videoId = getVideoId(url);
 
     if(!videoId && !external) return;
 
-    allData.push({
-      date,
-      name,
-      url,
-      external,
-      memo,
-      videoId,
-      type,
-      timestamp: rowIndex++
-    });
+    allData.push({date,name,url,external,memo,videoId,type});
   });
 }
 
@@ -346,7 +321,7 @@ async function render(){
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
 
-  const list = allData.filter(v=>{
+  const list = allData.slice().reverse().filter(v=>{
     if(currentFilter!=="all" && v.type!==currentFilter) return false;
     if(name && v.name!==name) return false;
     if(start && new Date(v.date)<new Date(start)) return false;
@@ -358,14 +333,13 @@ async function render(){
 
   for(const v of list){
 
-    const link = v.external || v.url;
+    const link = v.external || `https://youtu.be/${v.videoId}`;
 
     let media = "";
     let title = "";
 
     if(v.external){
       const preview = await getPreview(v.external);
-
       title = preview.title;
 
       media = `
