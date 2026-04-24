@@ -16,7 +16,14 @@ body {
   font-family:'Noto Sans KR', sans-serif;
 }
 
-/* 🔥 필터 전체 */
+/* 안내 문구 */
+.notice {
+  font-size:13px;
+  color:#aaa;
+  margin-bottom:15px;
+}
+
+/* 필터 */
 .filters {
   display:flex;
   gap:20px;
@@ -24,7 +31,6 @@ body {
   flex-wrap:wrap;
 }
 
-/* 필터 그룹 */
 .filter-group {
   background:#181818;
   padding:12px;
@@ -34,13 +40,11 @@ body {
   gap:6px;
 }
 
-/* 라벨 */
 .label {
   font-size:12px;
   color:#aaa;
 }
 
-/* 날짜 묶음 */
 .date-range {
   display:flex;
   align-items:center;
@@ -113,7 +117,6 @@ select, input[type="date"] {
   opacity:1;
 }
 
-/* NEW */
 .badge {
   position:absolute;
   top:8px;
@@ -135,8 +138,9 @@ select, input[type="date"] {
 <body>
 
 <h2>🎸 영상 모음</h2>
+<div class="notice">시트 입력 후 반영까지 1분 이내의 시간이 걸릴 수 있어요😋</div>
 
-<!-- 🔥 필터 (분리 UI) -->
+<!-- 필터 -->
 <div class="filters">
 
   <div class="filter-group">
@@ -175,12 +179,14 @@ const urls = {
 let allData = [];
 let currentFilter = "all";
 
+/* 탭 */
 function setTab(i){
   document.querySelectorAll('.tab').forEach((t,idx)=>{
     t.classList.toggle('active', idx===i);
   });
 }
 
+/* 전체 로드 */
 function loadAll(){
   Promise.all([
     fetch(urls.assignment).then(r=>r.text()),
@@ -195,6 +201,21 @@ function loadAll(){
   });
 }
 
+/* 🔥 유튜브 ID 추출 (쇼츠 포함) */
+function getVideoId(url){
+  if(url.includes("youtu.be")){
+    return url.split("/").pop().split("?")[0];
+  }
+  if(url.includes("shorts")){
+    return url.split("/shorts/")[1].split("?")[0];
+  }
+  if(url.includes("v=")){
+    return url.split("v=")[1].split("&")[0];
+  }
+  return null;
+}
+
+/* CSV 파싱 */
 function parseCSV(data,type){
   const rows = data.split("\n").slice(1);
 
@@ -210,20 +231,14 @@ function parseCSV(data,type){
 
     date = date.replace(/\./g,"-").replace(/\s/g,"");
 
-    let videoId;
-    if(url.includes("youtu.be")){
-      videoId = url.split("/").pop().split("?")[0];
-    } else {
-      videoId = url.split("v=")[1]?.split("&")[0];
-    }
-
+    const videoId = getVideoId(url);
     if(!videoId) return;
 
     allData.push({date,name,url,videoId,type});
   });
 }
 
-/* 닉네임 옵션 자동 생성 */
+/* 닉네임 리스트 */
 function createNameOptions(){
   const select = document.getElementById("nameFilter");
   const names = [...new Set(allData.map(v=>v.name))];
@@ -236,6 +251,7 @@ function createNameOptions(){
   });
 }
 
+/* 렌더 */
 function render(){
   const container = document.getElementById("videoList");
   container.innerHTML = "";
@@ -272,13 +288,14 @@ function render(){
   });
 }
 
+/* 필터 */
 function filter(type,i){
   currentFilter=type;
   setTab(i);
   render();
 }
 
-/* 필터 이벤트 */
+/* 이벤트 */
 document.getElementById("nameFilter").addEventListener("change", render);
 document.getElementById("startDate").addEventListener("change", render);
 document.getElementById("endDate").addEventListener("change", render);
