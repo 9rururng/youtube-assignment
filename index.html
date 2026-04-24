@@ -16,65 +16,8 @@ body {
   font-family:'Noto Sans KR', sans-serif;
 }
 
-h2 { font-weight:700; margin-bottom:5px; }
-
-.notice {
-  font-size:13px;
-  color:#888;
-  margin-bottom:20px;
-}
-
-/* 필터 */
-.filters {
-  display:flex;
-  gap:15px;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-}
-
-.filter-group {
-  background:#151515;
-  padding:12px;
-  border-radius:14px;
-}
-
-.label {
-  font-size:12px;
-  color:#aaa;
-  margin-bottom:6px;
-}
-
-.date-range {
-  display:flex;
-  gap:6px;
-}
-
-select, input[type="date"] {
-  padding:8px;
-  border-radius:8px;
-  border:none;
-  background:#222;
-  color:#fff;
-}
-
-/* 탭 */
-.tabs {
-  display:flex;
-  gap:10px;
-  margin-bottom:20px;
-}
-
-.tab {
-  padding:8px 16px;
-  border-radius:20px;
-  background:#1a1a1a;
-  cursor:pointer;
-}
-
-.tab.active {
-  background:#fff;
-  color:#000;
-}
+h2 { margin-bottom:5px; }
+.notice { font-size:13px; color:#888; margin-bottom:20px; }
 
 /* 카드 */
 .grid {
@@ -87,57 +30,42 @@ select, input[type="date"] {
   background:#121212;
   border-radius:18px;
   overflow:hidden;
-  position:relative;
   cursor:pointer;
-  transition:0.3s;
 }
 
-.card:hover {
-  transform:translateY(-6px);
-  box-shadow:0 15px 40px rgba(0,0,0,0.6);
+/* 🔥 닉네임 (상단 영역) */
+.name-bar {
+  background:#fff;
+  color:#000;
+  text-align:center;
+  padding:8px;
+  font-size:14px;
+  font-weight:500;
+}
+
+/* 썸네일 영역 */
+.thumb-wrap {
+  position:relative;
 }
 
 .card img {
   width:100%;
   aspect-ratio:16/9;
-  transition:0.4s;
-}
-
-.card:hover img {
-  transform:scale(1.1);
-  filter:brightness(0.6);
-}
-
-/* 🔥 닉네임 상단 */
-.name-tag {
-  position:absolute;
-  top:8px;
-  left:50%;
-  transform:translateX(-50%);
-
-  background:#fff;
-  color:#000;
-
-  padding:4px 10px;
-  border-radius:12px;
-
-  font-size:14px;
-  font-weight:500;
-
-  z-index:6;
-  box-shadow:0 2px 8px rgba(0,0,0,0.3);
 }
 
 /* 카테고리 */
 .category {
   position:absolute;
-  top:10px;
-  left:10px;
-  padding:5px 12px;
+  top:8px;
+  left:8px;
+  padding:4px 10px;
   border-radius:20px;
   font-size:11px;
   font-weight:600;
 }
+
+.category.assignment { background:#2563eb; color:#fff; }
+.category.free { background:#fff; color:#000; }
 
 /* NEW */
 .badge {
@@ -152,36 +80,11 @@ select, input[type="date"] {
   font-weight:600;
 }
 
-/* 색상 */
-.category.assignment { background:#2563eb; color:#fff; }
-.category.free { background:#fff; color:#000; }
-
-/* 플레이 */
-.play {
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  font-size:32px;
-  opacity:0;
-}
-
-.card:hover .play { opacity:1; }
-
 /* 정보 */
 .info { padding:12px; }
+.title { font-size:14px; margin-bottom:4px; }
+.sub { font-size:12px; color:#aaa; }
 
-.title {
-  font-size:14px;
-  font-weight:500;
-}
-
-.sub {
-  font-size:12px;
-  color:#aaa;
-}
-
-/* 모바일 */
 @media (max-width:600px) {
   .grid { grid-template-columns:1fr; }
 }
@@ -193,30 +96,6 @@ select, input[type="date"] {
 <h2>🎸 영상 모음</h2>
 <div class="notice">시트 입력 후 반영까지 1분 이내의 시간이 걸릴 수 있어요😋</div>
 
-<div class="filters">
-  <div class="filter-group">
-    <div class="label">닉네임</div>
-    <select id="nameFilter">
-      <option value="">전체</option>
-    </select>
-  </div>
-
-  <div class="filter-group">
-    <div class="label">📅 기간</div>
-    <div class="date-range">
-      <input type="date" id="startDate">
-      <span>~</span>
-      <input type="date" id="endDate">
-    </div>
-  </div>
-</div>
-
-<div class="tabs">
-  <div class="tab active" onclick="filter('all',0)">전체</div>
-  <div class="tab" onclick="filter('assignment',1)">과제</div>
-  <div class="tab" onclick="filter('free',2)">연습</div>
-</div>
-
 <div class="grid" id="videoList"></div>
 
 <script>
@@ -226,7 +105,25 @@ const urls = {
 };
 
 let allData = [];
-let currentFilter = "all";
+let cache = {};
+
+/* 🔥 유튜브 API */
+async function getYoutubeTitle(videoId){
+  const API_KEY = "AIzaSyDeLlRW5ipOfesPCPu9ruc0FCC198fqNY0";
+
+  if(cache[videoId]) return cache[videoId];
+
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`
+  );
+  const data = await res.json();
+
+  if(!data.items || data.items.length === 0) return "제목 없음";
+
+  const title = data.items[0].snippet.title;
+  cache[videoId] = title;
+  return title;
+}
 
 function getVideoId(url){
   if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
@@ -241,7 +138,6 @@ function loadAll(){
   ]).then(([a,f])=>{
     parseCSV(a,"assignment");
     parseCSV(f,"free");
-    createNameOptions();
     render();
   });
 }
@@ -264,68 +160,44 @@ function parseCSV(data,type){
   });
 }
 
-function createNameOptions(){
-  const select = document.getElementById("nameFilter");
-  const names = [...new Set(allData.map(v=>v.name))];
-
-  names.forEach(name=>{
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  });
-}
-
-function render(){
+async function render(){
   const container = document.getElementById("videoList");
   container.innerHTML = "";
 
   const now = new Date();
-  const selectedName = document.getElementById("nameFilter").value;
 
-  allData.slice().reverse().forEach(item=>{
-
-    if(currentFilter!=="all" && item.type!==currentFilter) return;
-    if(selectedName && item.name !== selectedName) return;
+  for(const item of allData.slice().reverse()){
 
     const diff = (now - new Date(item.date))/(1000*60*60*24);
     const isNew = diff>=0 && diff<3;
 
     const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
+    const title = await getYoutubeTitle(item.videoId);
 
     container.innerHTML += `
       <div class="card" onclick="window.open('${item.url}')">
 
-        <div class="name-tag">${item.name}</div>
+        <div class="name-bar">${item.name}</div>
 
-        <div class="category ${item.type}">
-          ${item.type === "assignment" ? "과제" : "연습"}
+        <div class="thumb-wrap">
+          <div class="category ${item.type}">
+            ${item.type === "assignment" ? "과제" : "연습"}
+          </div>
+
+          ${isNew ? '<div class="badge">NEW</div>' : ''}
+
+          <img src="${thumb}">
         </div>
 
-        ${isNew ? '<div class="badge">NEW</div>' : ''}
-
-        <img src="${thumb}">
-        <div class="play">▶</div>
-
         <div class="info">
-          <div class="title">영상</div>
+          <div class="title">${title}</div>
           <div class="sub">${item.date}</div>
         </div>
 
       </div>
     `;
-  });
+  }
 }
-
-function filter(type,i){
-  currentFilter=type;
-  document.querySelectorAll('.tab').forEach((t,idx)=>{
-    t.classList.toggle('active', idx===i);
-  });
-  render();
-}
-
-document.getElementById("nameFilter").addEventListener("change", render);
 
 loadAll();
 </script>
