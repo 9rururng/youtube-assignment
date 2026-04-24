@@ -243,16 +243,22 @@ async function getPreview(url){
 
 /* load */
 function loadAll(){
-  Promise.all([
-    fetch(urls.assignment).then(r=>r.text()),
-    fetch(urls.free).then(r=>r.text())
-  ]).then(([a,f])=>{
-    parseCSV(a,"assignment");
-    parseCSV(f,"free");
-    createNames();
-    render();
+Promise.all([
+  fetch(urls.assignment).then(r=>r.text()),
+  fetch(urls.free).then(r=>r.text())
+]).then(([a,f])=>{
+
+  parseCSV(a,"assignment");
+  parseCSV(f,"free");
+
+  // 🔥 여기 핵심
+  allData.sort((a,b)=>{
+    return new Date(b.date) - new Date(a.date);
   });
-}
+
+  createNames();
+  render();
+});
 
 /* parse */
 function parseCSV(data,type){
