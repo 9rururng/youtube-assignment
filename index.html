@@ -226,7 +226,7 @@ let currentFilter = "all";
 let cache = {};
 
 async function getTitle(id){
-  const API_KEY = "여기에_API키";
+  const API_KEY = "AIzaSyDeLlRW5ipOfesPCPu9ruc0FCC198fqNY0";
   if(cache[id]) return cache[id];
 
   const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${API_KEY}`);
