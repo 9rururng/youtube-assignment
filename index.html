@@ -1,139 +1,166 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>J-rock 소모임 과제 영상</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영상 모음</title>
 
-  <style>
-    body {
-      background:#0f0f0f;
-      color:#fff;
-      font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-      margin:0;
-      padding:20px;
-    }
+<style>
+body { background:#0f0f0f; color:#fff; margin:0; padding:20px; }
 
-    h2 {
-      margin-bottom:20px;
-    }
+.tabs { display:flex; gap:10px; margin-bottom:15px; }
 
-    /* PC 기본 */
-    .grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
-      gap:18px;
-    }
+.tab {
+  padding:8px 14px;
+  border-radius:20px;
+  background:#222;
+  cursor:pointer;
+}
 
-    .card {
-      background:#181818;
-      border-radius:14px;
-      overflow:hidden;
-      transition:transform 0.2s, box-shadow 0.2s;
-    }
+.tab.active {
+  background:#fff;
+  color:#000;
+}
 
-    .card:hover {
-      transform:translateY(-6px);
-      box-shadow:0 12px 25px rgba(0,0,0,0.5);
-    }
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+  gap:18px;
+}
 
-    .card img {
-      width:100%;
-      aspect-ratio:16/9;
-      object-fit:cover;
-    }
+.card {
+  background:#181818;
+  border-radius:14px;
+  overflow:hidden;
+  position:relative;
+}
 
-    .info {
-      padding:12px;
-    }
+.badge {
+  position:absolute;
+  top:8px;
+  left:8px;
+  background:red;
+  font-size:11px;
+  padding:4px 6px;
+}
 
-    .name {
-      font-size:15px;
-      font-weight:500;
-    }
+.card img {
+  width:100%;
+  aspect-ratio:16/9;
+}
 
-    .date {
-      font-size:12px;
-      color:#aaa;
-      margin-top:4px;
-    }
+.info { padding:10px; }
 
-    /* 📱 모바일 */
-    @media (max-width: 600px) {
-      .grid {
-        grid-template-columns:1fr;
-        gap:14px;
-      }
-
-      body {
-        padding:12px;
-      }
-
-      .name {
-        font-size:16px;
-      }
-    }
-
-    /* 📱 태블릿 */
-    @media (min-width: 601px) and (max-width: 900px) {
-      .grid {
-        grid-template-columns:repeat(2, 1fr);
-      }
-    }
-  </style>
+@media (max-width:600px) {
+  .grid { grid-template-columns:1fr; }
+}
+</style>
 </head>
 
 <body>
 
-<h2>🎸 과제 제출 영상</h2>
+<h2>🎸 영상 모음</h2>
+
+<div class="tabs">
+  <div class="tab active" onclick="filter('all',0)">전체</div>
+  <div class="tab" onclick="filter('assignment',1)">과제</div>
+  <div class="tab" onclick="filter('free',2)">연습</div>
+</div>
+
 <div class="grid" id="videoList"></div>
 
 <script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/1kTpj8r_CAJTbxjRgtbF2YZ4rOXsB9shoZ2YPO6o8wzE/export?format=csv";
+const urls = {
+  assignment: "https://docs.google.com/spreadsheets/d/1kTpj8r_CAJTbxjRgtbF2YZ4rOXsB9shoZ2YPO6o8wzE/export?format=csv&gid=0",
+  free: "https://docs.google.com/spreadsheets/d/1kTpj8r_CAJTbxjRgtbF2YZ4rOXsB9shoZ2YPO6o8wzE/export?format=csv&gid=570271576"
+};
 
-fetch(sheetURL)
-  .then(res => res.text())
-  .then(data => {
-    const rows = data.split("\n").slice(4); // ⭐ 5번째 줄부터
+let allData = [];
 
-    rows.reverse().forEach(row => {
-      const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-
-      if (!cols || cols.length < 3) return;
-
-      const date = cols[0];
-      const name = cols[1];
-      const url = cols[2];
-
-      if (!url) return;
-
-      let videoId;
-
-      if (url.includes("youtu.be")) {
-        videoId = url.split("/").pop().split("?")[0];
-      } else {
-        videoId = url.split("v=")[1]?.split("&")[0];
-      }
-
-      if (!videoId) return;
-
-      const thumb = `https://img.youtube.com/vi/${videoId}/0.jpg`;
-
-      const card = `
-        <div class="card">
-          <a href="${url}" target="_blank">
-            <img src="${thumb}">
-          </a>
-          <div class="info">
-            <div class="name">${name}</div>
-            <div class="date">${date}</div>
-          </div>
-        </div>
-      `;
-
-      document.getElementById("videoList").innerHTML += card;
-    });
+function setTab(i){
+  document.querySelectorAll('.tab').forEach((t,idx)=>{
+    t.classList.toggle('active', idx===i);
   });
+}
+
+function loadAll(){
+  Promise.all([
+    fetch(urls.assignment).then(r=>r.text()),
+    fetch(urls.free).then(r=>r.text())
+  ]).then(([a,f])=>{
+    allData = [];
+
+    parseCSV(a, "assignment");
+    parseCSV(f, "free");
+
+    render(allData);
+  });
+}
+
+function parseCSV(data, type){
+  const rows = data.split("\n").slice(1);
+
+  rows.forEach(row=>{
+    const cols = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+    if(!cols || cols.length<3) return;
+
+    const date = cols[0];
+    const name = cols[1];
+    const url = cols[2];
+
+    if(!url) return;
+
+    let videoId;
+    if(url.includes("youtu.be")){
+      videoId = url.split("/").pop().split("?")[0];
+    } else {
+      videoId = url.split("v=")[1]?.split("&")[0];
+    }
+
+    if(!videoId) return;
+
+    allData.push({date,name,url,videoId,type});
+  });
+}
+
+function render(data){
+  const container = document.getElementById("videoList");
+  container.innerHTML = "";
+
+  const now = new Date();
+
+  data.slice().reverse().forEach(item=>{
+    const diff = (now - new Date(item.date))/(1000*60*60*24);
+    const isNew = diff < 3;
+
+    const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
+
+    container.innerHTML += `
+      <div class="card">
+        ${isNew ? '<div class="badge">NEW</div>' : ''}
+        <a href="${item.url}" target="_blank">
+          <img src="${thumb}">
+        </a>
+        <div class="info">
+          <div>${item.name}</div>
+          <div style="font-size:12px;color:#aaa">${item.date}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function filter(type,i){
+  setTab(i);
+
+  if(type==="all"){
+    render(allData);
+  } else {
+    render(allData.filter(v=>v.type===type));
+  }
+}
+
+loadAll();
 </script>
 
 </body>
