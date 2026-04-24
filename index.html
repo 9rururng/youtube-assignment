@@ -147,23 +147,26 @@ select, input[type="date"] {
 /* NEW → 오른쪽 */
 .badge {
   position:absolute;
-  top:10px;
-  right:10px;
+  top:8px;
+  right:8px;
 
-  background-color:#ff3b3b !important;
-  color:#ffffff !important;
+  background:#ff3b3b;
+  color:#fff;
 
-  padding:4px 10px;
-  border-radius:20px;
-  font-size:11px;
+  padding:3px 8px;
+  border-radius:12px;
+
+  font-size:10px;
   font-weight:600;
 
-  line-height:1;           /* 🔥 깨짐 방지 */
-  display:inline-block;    /* 🔥 레이아웃 안정 */
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 
-  z-index:10;              /* 🔥 위에 뜨게 */
+  z-index:5;
 
-  box-shadow:0 2px 8px rgba(255,0,0,0.4);
+  box-shadow:0 2px 6px rgba(0,0,0,0.4);
 }
 
 /* 과제 (파랑 배경 + 흰 글씨) */
