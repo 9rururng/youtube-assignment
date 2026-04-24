@@ -5,19 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>영상 모음</title>
 
-<!-- ✅ Noto Sans 폰트 추가 -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
-body { 
-  background:#0f0f0f; 
-  color:#fff; 
-  margin:0; 
+body {
+  background:#0f0f0f;
+  color:#fff;
+  margin:0;
   padding:20px;
-  font-family: 'Noto Sans KR', sans-serif; /* ✅ 적용 */
+  font-family:'Noto Sans KR', sans-serif;
 }
 
-.tabs { display:flex; gap:10px; margin-bottom:15px; }
+.tabs {
+  display:flex;
+  gap:10px;
+  margin-bottom:10px;
+}
 
 .tab {
   padding:8px 14px;
@@ -31,6 +34,19 @@ body {
   color:#000;
 }
 
+.search {
+  display:flex;
+  gap:10px;
+  margin-bottom:15px;
+  flex-wrap:wrap;
+}
+
+.search input {
+  padding:8px;
+  border-radius:8px;
+  border:none;
+}
+
 .grid {
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
@@ -42,6 +58,34 @@ body {
   border-radius:14px;
   overflow:hidden;
   position:relative;
+  cursor:pointer;
+}
+
+/* 🔥 hover 효과 */
+.card:hover img {
+  transform:scale(1.08);
+  filter:brightness(0.7);
+}
+
+.card img {
+  width:100%;
+  aspect-ratio:16/9;
+  transition:0.3s;
+}
+
+/* ▶ 아이콘 */
+.play {
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:30px;
+  opacity:0;
+  transition:0.3s;
+}
+
+.card:hover .play {
+  opacity:1;
 }
 
 .badge {
@@ -54,12 +98,17 @@ body {
   border-radius:6px;
 }
 
-.card img {
-  width:100%;
-  aspect-ratio:16/9;
+.info { padding:10px; }
+
+.title {
+  font-size:14px;
+  font-weight:500;
 }
 
-.info { padding:10px; }
+.date {
+  font-size:12px;
+  color:#aaa;
+}
 
 @media (max-width:600px) {
   .grid { grid-template-columns:1fr; }
@@ -77,6 +126,11 @@ body {
   <div class="tab" onclick="filter('free',2)">연습</div>
 </div>
 
+<div class="search">
+  <input id="nameSearch" placeholder="닉네임 검색">
+  <input id="dateSearch" placeholder="날짜 검색">
+</div>
+
 <div class="grid" id="videoList"></div>
 
 <script>
@@ -86,6 +140,7 @@ const urls = {
 };
 
 let allData = [];
+let currentFilter = "all";
 
 function setTab(i){
   document.querySelectorAll('.tab').forEach((t,idx)=>{
@@ -99,15 +154,13 @@ function loadAll(){
     fetch(urls.free).then(r=>r.text())
   ]).then(([a,f])=>{
     allData = [];
-
-    parseCSV(a, "assignment");
-    parseCSV(f, "free");
-
-    render(allData);
+    parseCSV(a,"assignment");
+    parseCSV(f,"free");
+    render();
   });
 }
 
-function parseCSV(data, type){
+function parseCSV(data,type){
   const rows = data.split("\n").slice(1);
 
   rows.forEach(row=>{
@@ -120,8 +173,7 @@ function parseCSV(data, type){
 
     if(!url) return;
 
-    // ✅ 날짜 변환 (NEW용)
-    date = date.replace(/\./g, "-").replace(/\s/g, "");
+    date = date.replace(/\./g,"-").replace(/\s/g,"");
 
     let videoId;
     if(url.includes("youtu.be")){
@@ -132,33 +184,40 @@ function parseCSV(data, type){
 
     if(!videoId) return;
 
-    allData.push({date,name,url,videoId,type});
+    // 🔥 제목 fallback (닉네임 사용)
+    const title = name + "님의 영상";
+
+    allData.push({date,name,url,videoId,type,title});
   });
 }
 
-function render(data){
+function render(){
   const container = document.getElementById("videoList");
   container.innerHTML = "";
 
   const now = new Date();
+  const nameKeyword = document.getElementById("nameSearch").value.toLowerCase();
+  const dateKeyword = document.getElementById("dateSearch").value;
 
-  data.slice().reverse().forEach(item=>{
-    const itemDate = new Date(item.date);
+  allData.slice().reverse().forEach(item=>{
 
-    const diff = (now - itemDate)/(1000*60*60*24);
-    const isNew = diff >= 0 && diff < 3;
+    if(currentFilter!=="all" && item.type!==currentFilter) return;
+    if(nameKeyword && !item.name.toLowerCase().includes(nameKeyword)) return;
+    if(dateKeyword && !item.date.includes(dateKeyword)) return;
+
+    const diff = (now - new Date(item.date))/(1000*60*60*24);
+    const isNew = diff>=0 && diff<3;
 
     const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
 
     container.innerHTML += `
-      <div class="card">
+      <div class="card" onclick="window.open('${item.url}')">
         ${isNew ? '<div class="badge">NEW</div>' : ''}
-        <a href="${item.url}" target="_blank">
-          <img src="${thumb}">
-        </a>
+        <img src="${thumb}">
+        <div class="play">▶</div>
         <div class="info">
-          <div>${item.name}</div>
-          <div style="font-size:12px;color:#aaa">${item.date}</div>
+          <div class="title">${item.title}</div>
+          <div class="date">${item.date}</div>
         </div>
       </div>
     `;
@@ -166,14 +225,13 @@ function render(data){
 }
 
 function filter(type,i){
+  currentFilter=type;
   setTab(i);
-
-  if(type==="all"){
-    render(allData);
-  } else {
-    render(allData.filter(v=>v.type===type));
-  }
+  render();
 }
+
+document.getElementById("nameSearch").addEventListener("input", render);
+document.getElementById("dateSearch").addEventListener("input", render);
 
 loadAll();
 </script>
