@@ -16,18 +16,43 @@ body {
   font-family:'Noto Sans KR', sans-serif;
 }
 
-/* 🔥 필터 영역 */
+/* 🔥 필터 전체 */
 .filters {
   display:flex;
-  gap:10px;
-  margin-bottom:15px;
+  gap:20px;
+  margin-bottom:20px;
   flex-wrap:wrap;
+}
+
+/* 필터 그룹 */
+.filter-group {
+  background:#181818;
+  padding:12px;
+  border-radius:12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* 라벨 */
+.label {
+  font-size:12px;
+  color:#aaa;
+}
+
+/* 날짜 묶음 */
+.date-range {
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
 
 select, input[type="date"] {
   padding:8px;
   border-radius:8px;
   border:none;
+  background:#222;
+  color:#fff;
 }
 
 /* 탭 */
@@ -88,6 +113,7 @@ select, input[type="date"] {
   opacity:1;
 }
 
+/* NEW */
 .badge {
   position:absolute;
   top:8px;
@@ -110,14 +136,25 @@ select, input[type="date"] {
 
 <h2>🎸 영상 모음</h2>
 
-<!-- 🔥 필터 (탭 위) -->
+<!-- 🔥 필터 (분리 UI) -->
 <div class="filters">
-  <select id="nameFilter">
-    <option value="">전체 닉네임</option>
-  </select>
 
-  <input type="date" id="startDate">
-  <input type="date" id="endDate">
+  <div class="filter-group">
+    <div class="label">닉네임</div>
+    <select id="nameFilter">
+      <option value="">전체</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <div class="label">📅 기간</div>
+    <div class="date-range">
+      <input type="date" id="startDate">
+      <span>~</span>
+      <input type="date" id="endDate">
+    </div>
+  </div>
+
 </div>
 
 <!-- 탭 -->
@@ -186,7 +223,7 @@ function parseCSV(data,type){
   });
 }
 
-/* 🔥 닉네임 자동 생성 */
+/* 닉네임 옵션 자동 생성 */
 function createNameOptions(){
   const select = document.getElementById("nameFilter");
   const names = [...new Set(allData.map(v=>v.name))];
@@ -241,7 +278,7 @@ function filter(type,i){
   render();
 }
 
-/* 🔥 필터 이벤트 */
+/* 필터 이벤트 */
 document.getElementById("nameFilter").addEventListener("change", render);
 document.getElementById("startDate").addEventListener("change", render);
 document.getElementById("endDate").addEventListener("change", render);
