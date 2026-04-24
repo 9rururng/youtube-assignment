@@ -132,23 +132,11 @@ select, input[type="date"] {
   opacity:1;
 }
 
-/* NEW */
-.badge {
-  position:absolute;
-  top:10px;
-  left:10px;
-  background:#ff3b3b;
-  padding:4px 10px;
-  border-radius:20px;
-  font-size:11px;
-  font-weight:600;
-}
-
-/* 카테고리 */
+/* 카테고리 → 왼쪽 */
 .category {
   position:absolute;
   top:10px;
-  right:10px;
+  left:10px;
   padding:5px 12px;
   border-radius:20px;
   font-size:11px;
@@ -156,14 +144,27 @@ select, input[type="date"] {
   backdrop-filter: blur(6px);
 }
 
-/* 과제 */
-.category.assignment {
-  background:rgba(255,59,59,0.85);
+/* NEW → 오른쪽 */
+.badge {
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:600;
 }
 
-/* 연습 */
+/* 과제 (파랑 배경 + 흰 글씨) */
+.category.assignment {
+  background:#2563eb;
+  color:#fff;
+}
+
+/* 연습 (흰 배경 + 검정 글씨) */
 .category.free {
-  background:rgba(59,130,246,0.85);
+  background:#fff;
+  color:#000;
 }
 
 /* 정보 */
@@ -330,12 +331,11 @@ async function render(){
 
     container.innerHTML += `
       <div class="card" onclick="window.open('${item.url}')">
+<div class="category ${item.type}">
+  ${item.type === "assignment" ? "과제" : "연습"}
+</div>
 
-        ${isNew ? '<div class="badge">NEW</div>' : ''}
-
-        <div class="category ${item.type}">
-          ${item.type === "assignment" ? "과제" : "연습"}
-        </div>
+${isNew ? '<div class="badge">NEW</div>' : ''}
 
         <img src="${thumb}">
         <div class="play">▶</div>
