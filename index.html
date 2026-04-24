@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>영상 모음</title>
+<title>J-ROCK 소모임 영상 모음</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
@@ -88,12 +88,10 @@ select, input {
   font-size:14px;
 }
 
-/* media */
 .thumb-wrap {
   width:100%;
   aspect-ratio:16/9;
   background:#000;
-  overflow:hidden;
 }
 
 .thumb-wrap img {
@@ -103,12 +101,12 @@ select, input {
   display:block;
 }
 
-/* external preview */
+/* 외부 링크 미리보기 */
 .preview {
   width:100%;
   height:100%;
   background:#1a1a1a;
-  padding:10px;
+  padding:12px;
   box-sizing:border-box;
   display:flex;
   flex-direction:column;
@@ -118,7 +116,7 @@ select, input {
 .preview-title {
   font-size:13px;
   font-weight:600;
-  margin-bottom:5px;
+  margin-bottom:6px;
 }
 
 .preview-url {
@@ -127,7 +125,6 @@ select, input {
   word-break:break-all;
 }
 
-/* info */
 .info {
   padding:12px;
 }
@@ -160,14 +157,16 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 반영 약간 지연될 수 있음</div>
+  <div class="notice">시트 반영 최대 1분</div>
 </div>
 
 <div class="controls">
   <div class="filters">
     <div class="filter-group">
       <span>닉네임</span>
-      <select id="nameFilter"><option value="">전체</option></select>
+      <select id="nameFilter">
+        <option value="">전체</option>
+      </select>
     </div>
 
     <div class="filter-group">
@@ -198,6 +197,8 @@ const urls = {
 
 let allData = [];
 let currentFilter = "all";
+let cache = {};
+let previewCache = {};
 
 /* youtube id */
 function getVideoId(url){
@@ -207,7 +208,28 @@ function getVideoId(url){
   if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
 }
 
-/* load */
+/* 외부 링크 미리보기 */
+async function getPreview(url){
+  if(previewCache[url]) return previewCache[url];
+
+  try {
+    const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+
+    const result = {
+      title: data?.data?.title || "외부 링크",
+      url
+    };
+
+    previewCache[url] = result;
+    return result;
+
+  } catch {
+    return { title:"외부 링크", url };
+  }
+}
+
+/* 데이터 로드 */
 function loadAll(){
   Promise.all([
     fetch(urls.assignment).then(r=>r.text()),
@@ -220,9 +242,9 @@ function loadAll(){
   });
 }
 
-/* parse */
+/* CSV */
 function parseCSV(data,type){
-  data.split("\n").slice(4).forEach(row=>{
+  data.split("\n").slice(1).forEach(row=>{
     const c = row.split(",");
     if(c.length < 3) return;
 
@@ -240,7 +262,7 @@ function parseCSV(data,type){
   });
 }
 
-/* name */
+/* 이름 */
 function createNames(){
   const sel = document.getElementById("nameFilter");
   [...new Set(allData.map(v=>v.name))].forEach(n=>{
@@ -251,8 +273,8 @@ function createNames(){
   });
 }
 
-/* render */
-function render(){
+/* render (안정 버전) */
+async function render(){
   const box = document.getElementById("videoList");
   box.innerHTML = "";
 
@@ -260,33 +282,44 @@ function render(){
   const start = document.getElementById("startDate").value;
   const end = document.getElementById("endDate").value;
 
-  for(const v of allData.slice().reverse()){
+  const filtered = allData.slice().reverse().filter(v=>{
+    if(currentFilter!=="all" && v.type!==currentFilter) return false;
+    if(name && v.name!==name) return false;
+    if(start && new Date(v.date)<new Date(start)) return false;
+    if(end && new Date(v.date)>new Date(end)) return false;
+    return true;
+  });
 
-    if(currentFilter!=="all" && v.type!==currentFilter) continue;
-    if(name && v.name!==name) continue;
-    if(start && new Date(v.date)<new Date(start)) continue;
-    if(end && new Date(v.date)>new Date(end)) continue;
+  const html = await Promise.all(filtered.map(async v=>{
 
     const link = v.external || v.url;
 
     let media = "";
+    let title = "";
 
     /* 외부 링크 */
     if(v.external){
+      const preview = await getPreview(v.external);
+
+      title = preview.title;
+
       media = `
         <div class="preview">
-          <div class="preview-title">외부 링크</div>
-          <div class="preview-url">${v.external}</div>
+          <div class="preview-title">${preview.title}</div>
+          <div class="preview-url">${preview.url}</div>
         </div>
       `;
     }
+
     /* 유튜브 */
     else {
       const thumb = `https://img.youtube.com/vi/${v.videoId}/0.jpg`;
+      title = v.videoId;
+
       media = `<img src="${thumb}">`;
     }
 
-    box.innerHTML += `
+    return `
       <div class="card" onclick="window.open('${link}','_blank')">
 
         <div class="name-bar">${v.name}</div>
@@ -296,14 +329,16 @@ function render(){
         </div>
 
         <div class="info">
-          <div class="title">${v.videoId || v.external}</div>
+          <div class="title">${title}</div>
           <div class="sub">${v.date}</div>
           ${v.memo ? `<div class="memo">💬 ${v.memo}</div>` : ""}
         </div>
 
       </div>
     `;
-  }
+  }));
+
+  box.innerHTML = html.join("");
 }
 
 /* filter */
