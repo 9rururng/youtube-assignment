@@ -20,7 +20,6 @@ body {
 h2 { margin-bottom:5px; }
 .notice { font-size:13px; color:#888; }
 
-/* controls */
 .controls {
   background:#111;
   padding:15px;
@@ -49,7 +48,6 @@ select, input {
   color:#fff;
 }
 
-/* tabs */
 .tabs {
   display:flex;
   gap:10px;
@@ -66,7 +64,6 @@ select, input {
 .tab:hover { background:#333; }
 .tab.active { background:#fff; color:#000; }
 
-/* grid */
 .grid {
   display:grid;
   grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
@@ -86,7 +83,6 @@ select, input {
   box-shadow:0 15px 40px rgba(0,0,0,0.6);
 }
 
-/* name */
 .name-bar {
   background:#fff;
   color:#000;
@@ -96,20 +92,17 @@ select, input {
   font-weight:500;
 }
 
-/* media area */
 .thumb-wrap {
   position:relative;
   background:#000;
 }
 
-/* youtube image */
-.card img {
+.thumb-wrap img {
   width:100%;
   aspect-ratio:16/9;
   display:block;
 }
 
-/* external preview */
 .preview {
   width:100%;
   aspect-ratio:16/9;
@@ -117,7 +110,7 @@ select, input {
   display:flex;
   flex-direction:column;
   justify-content:center;
-  padding:10px;
+  padding:12px;
   box-sizing:border-box;
 }
 
@@ -133,34 +126,9 @@ select, input {
   word-break:break-all;
 }
 
-/* category */
-.category {
-  position:absolute;
-  top:8px;
-  left:8px;
-  padding:4px 10px;
-  border-radius:20px;
-  font-size:11px;
-  font-weight:600;
+.info {
+  padding:12px;
 }
-
-.category.assignment { background:#2563eb; color:#fff; }
-.category.free { background:#fff; color:#000; }
-
-/* badge */
-.badge {
-  position:absolute;
-  top:8px;
-  right:8px;
-  background:#ff3b3b;
-  color:#fff;
-  padding:3px 8px;
-  border-radius:12px;
-  font-size:10px;
-}
-
-/* info */
-.info { padding:12px; }
 
 .title {
   font-size:14px;
@@ -184,9 +152,6 @@ select, input {
   text-overflow:ellipsis;
 }
 
-@media (max-width:600px) {
-  .grid { grid-template-columns:1fr; }
-}
 </style>
 </head>
 
@@ -194,7 +159,7 @@ select, input {
 
 <div class="header">
   <h2>🎸 영상 모음</h2>
-  <div class="notice">시트 반영까지 최대 1분 정도 걸릴 수 있어요</div>
+  <div class="notice">시트 반영까지 최대 1분</div>
 </div>
 
 <div class="controls">
@@ -239,12 +204,13 @@ let previewCache = {};
 
 /* youtube id */
 function getVideoId(url){
+  if(!url) return null;
   if(url.includes("youtu.be")) return url.split("/").pop().split("?")[0];
   if(url.includes("shorts")) return url.split("/shorts/")[1].split("?")[0];
   if(url.includes("v=")) return url.split("v=")[1].split("&")[0];
 }
 
-/* link preview */
+/* external preview */
 async function getPreview(url){
   if(previewCache[url]) return previewCache[url];
 
@@ -305,13 +271,23 @@ function parseCSV(data,type){
     const memo = (cols[4] || "").slice(0,30);
 
     const videoId = getVideoId(url);
-    if(!videoId) return;
 
-    allData.push({date,name,url,external,memo,videoId,type});
+    // 🔥 OR 구조 (둘 중 하나만 있어도 OK)
+    if(!videoId && !external) return;
+
+    allData.push({
+      date,
+      name,
+      url,
+      external,
+      memo,
+      videoId,
+      type
+    });
   });
 }
 
-/* name filter */
+/* name */
 function createNameOptions(){
   const select = document.getElementById("nameFilter");
   [...new Set(allData.map(v=>v.name))].forEach(n=>{
@@ -339,29 +315,33 @@ async function render(){
     if(start && new Date(item.date)<new Date(start)) continue;
     if(end && new Date(item.date)>new Date(end)) continue;
 
-    const diff = (now - new Date(item.date))/(1000*60*60*24);
-    const isNew = diff>=0 && diff<3;
-
-    const title = await getTitle(item.videoId);
-
+    let title = "";
     let mediaHTML = "";
+    let openUrl = item.external || item.url;
 
-    /* 🔥 외부 링크 있으면 preview 카드 */
+    /* 외부 링크 우선 */
     if(item.external){
       const preview = await getPreview(item.external);
 
+      title = preview.title;
+
       mediaHTML = `
-        <div class="preview">
+        <div class="preview" onclick="window.open('${item.external}')">
           <div class="preview-title">${preview.title}</div>
           <div class="preview-url">${preview.url}</div>
         </div>
       `;
-    } else {
-      const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
-      mediaHTML = `<img src="${thumb}">`;
     }
 
-    const openUrl = item.external ? item.external : item.url;
+    /* 유튜브 */
+    else if(item.videoId){
+      const thumb = `https://img.youtube.com/vi/${item.videoId}/0.jpg`;
+      title = await getTitle(item.videoId);
+
+      mediaHTML = `
+        <img src="${thumb}" onclick="window.open('${item.url}')">
+      `;
+    }
 
     container.innerHTML += `
       <div class="card" onclick="window.open('${openUrl}')">
@@ -369,15 +349,7 @@ async function render(){
         <div class="name-bar">${item.name}</div>
 
         <div class="thumb-wrap">
-
-          <div class="category ${item.type}">
-            ${item.type==="assignment"?"과제":"연습"}
-          </div>
-
-          ${isNew ? '<div class="badge">NEW</div>' : ''}
-
           ${mediaHTML}
-
         </div>
 
         <div class="info">
