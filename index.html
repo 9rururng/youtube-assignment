@@ -84,12 +84,26 @@ select, input {
 
 /* 이름 */
 .name-bar {
-  background:#fff;
+  background:#ffffff;
   color:#000;
   text-align:center;
   padding:8px;
   font-size:14px;
+  font-weight:700;
   flex-shrink:0;
+}
+
+/* 과제 */
+.name-bar.assignment {
+  background:#d9ff00;
+  color:#111;
+  text-shadow:0 0 6px rgba(217,255,0,0.35);
+}
+
+/* 연습 */
+.name-bar.free {
+  background:#ffffff;
+  color:#000;
 }
 
 /* =========================
@@ -392,7 +406,9 @@ async function render(){
     html.push(`
       <div class="card" onclick="window.open('${link}','_blank')">
 
-        <div class="name-bar">${v.name}</div>
+        <div class="name-bar ${v.type}">
+  ${v.name}
+</div>
 
         <div class="thumb-wrap">
           ${media}
